@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词射击大冒险 - 浏览器兼容版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif, 'Microsoft YaHei', '微软雅黑';
+            background-color: #C9C9C9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1024px;
+            max-height: 768px;
+            background-color: #87CEEB;
+            border: 2px solid #989898;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            /* 启用硬件加速 */
+            -webkit-transform: translateZ(0);
+            -moz-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            -o-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
+        /* 兼容性鼠标准星样式 */
+        .crosshair-cursor {
+            cursor: crosshair;
+            cursor: -webkit-crosshair;
+        }
+        
+        #score, #timer {
+            position: absolute;
+            top: 10px;
+            padding: 5px 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 50;
+            /* 文本渲染优化 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+        }
+        
+        #score {
+            left: 10px;
+        }
+        
+        #timer {
+            right: 10px;
+        }
+        
+        #settingsBtn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 100;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
+        #settingsBtn:hover {
+            background-color: #45a049;
+        }
+        
+        #currentWordDisplay {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            -webkit-transform: translateX(-50%);
+            -moz-transform: translateX(-50%);
+            -ms-transform: translateX(-50%);
+            -o-transform: translateX(-50%);
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 50;
+        }
+        
+        #currentWordText {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+            margin: 5px 0;
+        }
+        
+        #wordProgress {
+            font-size: 14px;
+            color: #CCCCCC;
+        }
+        
+        #hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 20px;
+            display: none;
+            z-index: 100;
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -moz-box;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-flex-direction: column;
+            -moz-flex-direction: column;
+            -ms-flex-direction: column;
+            flex-direction: column;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -moz-box-pack: center;
+            -ms-flex-pack: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -moz-box-align: center;
+            -ms-flex-align: center;
+            align-items: center;
+            z-index: 200;
+        }
+        
+        #menu h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #menu button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 200px;
+            -webkit-transition: all 0.3s;
+            -moz-transition: all 0.3s;
+            -o-transition: all 0.3s;
+            transition: all 0.3s;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
+        #menu button:hover {
+            background-color: #2980b9;
+            -webkit-transform: scale(1.05);
+            -moz-transform: scale(1.05);
+            -ms-transform: scale(1.05);
+            -o-transform: scale(1.05);
+            transform: scale(1.05);
+        }
+        
+        /* 设置面板样式 */
+        #settingsPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.4);
+            z-index: 300;
+            display: none;
+            width: 80%;
+            max-width: 400px;
+        }
+        
+        #settingsPanel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .setting-group {
+            margin: 15px 0;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .setting-group select,
+        .setting-group input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        
+        .setting-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .buttons {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -moz-box;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            -moz-box-pack: justify;
+            -ms-flex-pack: justify;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+        
+        .buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            -webkit-transition: all 0.3s;
+            -moz-transition: all 0.3s;
+            -o-transition: all 0.3s;
+            transition: all 0.3s;
+        }
+        
+        #saveSettings {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #saveSettings:hover {
+            background-color: #45a049;
+        }
+        
+        #cancelSettings {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        #cancelSettings:hover {
+            background-color: #d32f2f;
+        }
+        
+        /* 自定义准星容器 */
+        #crosshairContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 90;
+            display: none;
+        }
+        
+        /* 自定义准星 */
+        .crosshair {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        
+        .crosshair-line {
+            position: absolute;
+            background-color: #FF0000;
+        }
+        
+        .crosshair-horizontal {
+            width: 30px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+        
+        .crosshair-vertical {
+            width: 2px;
+            height: 30px;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+        
+        .crosshair-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #FF0000;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+        
+        /* 枪图片样式 */
+        .gun-image {
+            position: absolute;
+            width: 120px;
+            height: auto;
+            pointer-events: none;
+            -webkit-transform: translate(-50%, 0);
+            -moz-transform: translate(-50%, 0);
+            -ms-transform: translate(-50%, 0);
+            -o-transform: translate(-50%, 0);
+            transform: translate(-50%, 0);
+            z-index: 85;
+        }
+        
+        /* 单词卡样式 */
+        #wordCard {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            -moz-transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            -o-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            z-index: 400;
+            display: none;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        #wordCard h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 32px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        #wordMeaning {
+            font-size: 24px;
+            color: #555;
+            margin: 15px 0;
+        }
+        
+        #wordExample {
+            font-size: 18px;
+            color: #777;
+            font-style: italic;
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+        
+        #wordPronunciation {
+            font-size: 16px;
+            color: #888;
+            margin: 10px 0;
+        }
+        
+        .word-card-buttons {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: -moz-box;
+            display: -ms-flexbox;
+            display: flex;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -moz-box-pack: center;
+            -ms-flex-pack: center;
+            justify-content: center;
+            margin-top: 25px;
+            gap: 15px;
+        }
+        
+        .word-card-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            -webkit-transition: all 0.3s;
+            -moz-transition: all 0.3s;
+            -o-transition: all 0.3s;
+            transition: all 0.3s;
+        }
+        
+        #speakButton {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        #speakButton:hover {
+            background-color: #2980b9;
+        }
+        
+        #closeWordCard {
+            background-color: #95a5a6;
+            color: white;
+        }
+        
+        #closeWordCard:hover {
+            background-color: #7f8c8d;
+        }
+        
+        /* 遮罩层 */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 350;
+            display: none;
+        }
+        
+        /* 浏览器兼容性提示 */
+        #browserWarning {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            z-index: 1000;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            -moz-box-align: center;
+            -ms-flex-align: center;
+            align-items: center;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            -moz-box-pack: center;
+            -ms-flex-pack: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #browserWarning h2 {
+            margin-bottom: 20px;
+            color: #ff6b6b;
+        }
+        
+        #browserWarning p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        #browserWarning ul {
+            text-align: left;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        #continueAnyway {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 浏览器兼容性警告 -->
+    <div id="browserWarning">
+        <h2>浏览器兼容性提示</h2>
+        <p>检测到您使用的浏览器可能不完全支持游戏的所有功能。</p>
+        <p>为了获得最佳游戏体验，建议使用以下浏览器：</p>
+        <ul>
+            <li>Google Chrome (推荐)</li>
+            <li>Mozilla Firefox</li>
+            <li>Microsoft Edge</li>
+            <li>Safari (Mac/iOS)</li>
+        </ul>
+        <p>当前浏览器可能存在的限制：</p>
+        <ul>
+            <li>语音朗读功能可能无法使用</li>
+            <li>游戏性能可能较低</li>
+            <li>部分动画效果可能不流畅</li>
+        </ul>
+        <button id="continueAnyway">继续游戏</button>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="canvas">您的浏览器不支持HTML5 Canvas，请升级浏览器。</canvas>
+        <div id="score">分数: 0</div>
+        <div id="timer">时间: 30:00</div>
+        <button id="settingsBtn">设置</button>
+        
+        <div id="currentWordDisplay">
+            <div>当前目标单词:</div>
+            <div id="currentWordText">-</div>
+            <div id="wordProgress">进度: 0/0</div>
+        </div>
+        
+        <div id="hint"></div>
+        
+        <!-- 遮罩层 -->
+        <div id="overlay"></div>
+        
+        <!-- 单词卡 -->
+        <div id="wordCard">
+            <h2 id="cardWordText">单词</h2>
+            <div id="wordPronunciation">发音: <span id="phoneticText">-</span></div>
+            <div id="wordMeaning">释义: <span id="meaningText">-</span></div>
+            <div id="wordExample">例句: <span id="exampleText">-</span></div>
+            <div class="word-card-buttons">
+                <button id="speakButton">朗读单词</button>
+                <button id="closeWordCard">关闭</button>
+            </div>
+        </div>
+        
+        <!-- 自定义准星容器，现在包含准星和枪的图片 -->
+        <div id="crosshairContainer">
+            <div class="crosshair">
+                <div class="crosshair-line crosshair-horizontal"></div>
+                <div class="crosshair-line crosshair-vertical"></div>
+                <div class="crosshair-dot"></div>
+            </div>
+            <!-- 枪的图片，使用Base64编码确保兼容性 -->
+            <img id="gunImage" class="gun-image" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRkZGRkZGIiBmaWxsLW9wYWNpdHk9IjAuMCIvPgo8cGF0aCBkPSJNMzAgNjBINDVMMzAgNDVWMzBINDBWNDVMMzAgNjBIMjBWNzBIMzBWNjhIMjBWNjBIMzBaIiBmaWxsPSIjMzMzMzMzIi8+CjxwYXRoIGQ9Ik0xNSA1MEg3MEw1NSA0NVYzMEg0NVY0NUw0MCA1MEgzMFY2MEg1MFY3MEg0MFY4MEg2MFY3MEg1MFY2MEg3MFY1MEg4MEw3NSA0NVYzMEg2NVY0NUw2MCA1MEgyMFYyMEg0MFYxMEg2MFYyMEg4MFY1MEw5MCA1NVY2NUg4MFY3MEg5MFY4MEg3NVY5MEg1NVY4MEg0MFY5MEgyMFY4MEgxMFY3MEgyMFY2NUgxMFY1NUwxNSA1MFoiIGZpbGw9IiMzMzMzMzMiLz4KPHBhdGggZD0iTTMwIDUwSDQ1TDMwIDM1VjI1SDQwVjM1TDMwIDUwSDIwVjYwSDMwVjU4SDIwVjUwSDMwWiIgZmlsbD0iIzMzMzMzMyIvPgo8cGF0aCBkPSJNNTAgNjBINTVWNTBINTBWNTVIQzUwIDU1IDUwIDU1IDUwIDU1VjYwSDU1WiIgZmlsbD0iI0ZGMDAwMCIvPgo8L3N2Zz4=" alt="枪">
+        </div>
+        
+        <div id="menu">
+            <h1>单词射击大冒险</h1>
+            <button id="unit1Btn">开始 Unit 1</button>
+            <button id="unit2Btn">开始 Unit 2</button>
+            <button id="unit3Btn">开始 Unit 3</button>
+            <button id="unit4Btn">开始 Unit 4</button>
+            <button id="unit5Btn">开始 Unit 5</button>
+            <button id="unit6Btn">开始 Unit 6</button>
+        </div>
+        
+        <!-- 设置面板 -->
+        <div id="settingsPanel">
+            <h2>游戏设置</h2>
+            <div class="setting-group">
+                <label for="difficultySelect">游戏难度:</label>
+                <select id="difficultySelect">
+                    <option value="easy">简单（缓慢下落）</option>
+                    <option value="hard">困难（正常速度）</option>
+                    <option value="crazy">疯狂（飞速下落）</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="fontSizeSlider">单词字体大小: <span id="fontSizeValue" class="setting-value">30px</span></label>
+                <input type="range" id="fontSizeSlider" min="20" max="40" value="30" step="2">
+            </div>
+            <div class="buttons">
+                <button id="saveSettings">保存设置</button>
+                <button id="cancelSettings">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 浏览器兼容性检测
+        function checkBrowserCompatibility() {
+            var issues = [];
+            
+            // 检查Canvas支持
+            if (!window.HTMLCanvasElement) {
+                issues.push("您的浏览器不支持HTML5 Canvas");
+            }
+            
+            // 检查requestAnimationFrame支持
+            if (!window.requestAnimationFrame) {
+                // 提供polyfill
+                window.requestAnimationFrame = window.requestAnimationFrame || 
+                    window.webkitRequestAnimationFrame || 
+                    window.mozRequestAnimationFrame || 
+                    window.msRequestAnimationFrame || 
+                    function(callback) { return window.setTimeout(callback, 1000/60); };
+                
+                window.cancelAnimationFrame = window.cancelAnimationFrame || 
+                    window.webkitCancelAnimationFrame || 
+                    window.mozCancelAnimationFrame || 
+                    window.msCancelAnimationFrame || 
+                    function(id) { clearTimeout(id); };
+            }
+            
+            // 检查语音合成支持
+            if (!window.speechSynthesis) {
+                issues.push("您的浏览器不支持语音朗读功能");
+            }
+            
+            // 检查localStorage支持
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+            } catch(e) {
+                issues.push("您的浏览器不支持本地存储，游戏进度将无法保存");
+            }
+            
+            return issues;
+        }
+        
+        // 显示浏览器兼容性警告
+        function showBrowserWarning(issues) {
+            if (issues.length > 0) {
+                var warningDiv = document.getElementById('browserWarning');
+                var issueList = warningDiv.querySelector('ul');
+                
+                // 清空现有问题列表
+                issueList.innerHTML = '';
+                
+                // 添加检测到的问题
+                issues.forEach(function(issue) {
+                    var li = document.createElement('li');
+                    li.textContent = issue;
+                    issueList.appendChild(li);
+                });
+                
+                warningDiv.style.display = 'flex';
+                
+                // 添加继续游戏按钮事件
+                document.getElementById('continueAnyway').addEventListener('click', function() {
+                    warningDiv.style.display = 'none';
+                    initGame();
+                });
+                
+                return true;
+            }
+            return false;
+        }
+        
+        // 游戏变量
+        var currentUnit = 1;
+        var score = 0;
+        var timer = 1800; // 30分钟 = 1800秒
+        var targets = [];
+        var correctWord = null;
+        var usedWords = {};
+        var allWordsCompleted = false;
+        var wrongWords = {};
+        var stats = { correctRates: {}, easyMix: {}, totalTime: 0 };
+        var gameAnimationId = null;
+        var timerInterval = null;
+        var currentWordIndex = 0;
+        var totalWordsInUnit = 0;
+        
+        // DOM元素
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var scoreElement = document.getElementById('score');
+        var timerElement = document.getElementById('timer');
+        var currentWordText = document.getElementById('currentWordText');
+        var wordProgress = document.getElementById('wordProgress');
+        var hintElement = document.getElementById('hint');
+        var menuElement = document.getElementById('menu');
+        var settingsBtn = document.getElementById('settingsBtn');
+        var currentWordDisplay = document.getElementById('currentWordDisplay');
+        var settingsPanel = document.getElementById('settingsPanel');
+        var difficultySelect = document.getElementById('difficultySelect');
+        var fontSizeSlider = document.getElementById('fontSizeSlider');
+        var fontSizeValue = document.getElementById('fontSizeValue');
+        var saveSettingsBtn = document.getElementById('saveSettings');
+        var cancelSettingsBtn = document.getElementById('cancelSettings');
+        var crosshairContainer = document.getElementById('crosshairContainer');
+        var crosshair = document.querySelector('.crosshair');
+        var gunImage = document.getElementById('gunImage');
+        var wordCard = document.getElementById('wordCard');
+        var overlay = document.getElementById('overlay');
+        var cardWordText = document.getElementById('cardWordText');
+        var phoneticText = document.getElementById('phoneticText');
+        var meaningText = document.getElementById('meaningText');
+        var exampleText = document.getElementById('exampleText');
+        var speakButton = document.getElementById('speakButton');
+        var closeWordCard = document.getElementById('closeWordCard');
+        
+        // 单元按钮
+        var unitButtons = {
+            1: document.getElementById('unit1Btn'),
+            2: document.getElementById('unit2Btn'),
+            3: document.getElementById('unit3Btn'),
+            4: document.getElementById('unit4Btn'),
+            5: document.getElementById('unit5Btn'),
+            6: document.getElementById('unit6Btn')
+        };
+        
+        // 设置相关变量
+        var wordFontSize = 30;
+        var speedFactor = 1.0;
+        var currentDifficulty = 'hard';
+        
+        // 难度配置
+        var difficultySettings = {
+            'easy': { label: '简单（缓慢下落）', factor: 0.3 },
+            'hard': { label: '困难（正常速度）', factor: 1.0 },
+            'crazy': { label: '疯狂（飞速下落）', factor: 2.0 }
+        };
+        
+        // 粒子系统变量
+        var particles = [];
+        
+        // 扩展单词库配置 - 现在包含释义、音标和例句
+        var wordUnits = {
+            1: [
+                {word: "apple", meaning: "苹果", phonetic: "/ˈæp.əl/", example: "I eat an apple every day."},
+                {word: "banana", meaning: "香蕉", phonetic: "/bəˈnɑː.nə/", example: "Monkeys love to eat bananas."},
+                {word: "cat", meaning: "猫", phonetic: "/kæt/", example: "The cat is sleeping on the sofa."},
+                {word: "dog", meaning: "狗", phonetic: "/dɒɡ/", example: "My dog likes to play in the park."},
+                {word: "egg", meaning: "鸡蛋", phonetic: "/eɡ/", example: "I have boiled eggs for breakfast."},
+                {word: "fish", meaning: "鱼", phonetic: "/fɪʃ/", example: "We caught three fish in the river."},
+                {word: "goat", meaning: "山羊", phonetic: "/ɡəʊt/", example: "The goat is eating grass on the hill."},
+                {word: "hat", meaning: "帽子", phonetic: "/hæt/", example: "He wears a red hat in winter."},
+                {word: "ice", meaning: "冰", phonetic: "/aɪs/", example: "The ice is melting in the sun."},
+                {word: "juice", meaning: "果汁", phonetic: "/dʒuːs/", example: "Orange juice is my favorite drink."}
+            ],
+            // ... 其他单元数据保持不变
+        };
+        
+        // 单元名称
+        var unitNames = {
+            1: "基础单词",
+            2: "动物与自然",
+            3: "日常物品",
+            4: "生活场景",
+            5: "学习用品",
+            6: "扩展词汇"
+        };
+        
+        // 初始化Canvas尺寸
+        function initCanvasSize() {
+            var container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            // 优化Canvas渲染性能
+            if (ctx.imageSmoothingEnabled !== undefined) {
+                ctx.imageSmoothingEnabled = false;
+            }
+        }
+        
+        // 时间格式化函数
+        function formatTime(seconds) {
+            var mins = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            return mins + ":" + (secs < 10 ? "0" : "") + secs;
+        }
+        
+        // 显示提示
+        function showHint(text, duration) {
+            if (duration === undefined) duration = 1500;
+            
+            hintElement.textContent = text;
+            hintElement.style.display = 'block';
+            
+            setTimeout(function() {
+                hintElement.style.display = 'none';
+            }, duration);
+        }
+        
+        // 获取随机错误单词
+        function getRandomWrongWord(unitWords) {
+            // 从当前单元的单词中随机选择一个，但不是正确答案
+            var wrongOptions = unitWords.filter(function(wordObj) {
+                return wordObj.word !== correctWord.word;
+            });
+            
+            if (wrongOptions.length > 0) {
+                return wrongOptions[Math.floor(Math.random() * wrongOptions.length)];
+            }
+            
+            // 如果所有单词都用过了，返回一个随机的
+            return unitWords[Math.floor(Math.random() * unitWords.length)];
+        }
+        
+        // 生成目标单词
+        function generateTargets() {
+            targets = [];
+            
+            var words = wordUnits[currentUnit];
+            if (!words || words.length === 0) {
+                console.error("单词库为空");
+                return;
+            }
+            
+            // 初始化当前单元的已用单词列表
+            if (!usedWords[currentUnit]) {
+                usedWords[currentUnit] = [];
+            }
+            
+            var currentUnitUsedWords = usedWords[currentUnit];
+            totalWordsInUnit = words.length;
+            
+            // 检查是否所有单词都已使用
+            if (currentUnitUsedWords.length >= words.length) {
+                allWordsCompleted = true;
+                showHint("恭喜！本单元所有单词已完成！游戏即将结束。", 3000);
+                
+                // 延迟3秒后自动结束游戏并返回主界面
+                setTimeout(function() {
+                    endGame();
+                }, 3000);
+                return;
+            }
+            
+            // 从本单元单词中随机选择一个未使用过的单词作为正确答案
+            var availableWords = words.filter(function(wordObj) {
+                return !currentUnitUsedWords.some(function(used) {
+                    return used.word === wordObj.word;
+                });
+            });
+            
+            if (availableWords.length === 0) {
+                allWordsCompleted = true;
+                return;
+            }
+            
+            correctWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+            
+            // 将正确答案添加到已用单词列表
+            if (!currentUnitUsedWords.some(function(used) {
+                return used.word === correctWord.word;
+            })) {
+                currentUnitUsedWords.push(correctWord);
+            }
+            
+            // 更新当前单词显示
+            currentWordText.textContent = correctWord.word;
+            currentWordIndex = currentUnitUsedWords.length;
+            wordProgress.textContent = "进度: " + currentWordIndex + "/" + totalWordsInUnit;
+            
+            // 生成目标 - 1个正确答案和7个错误答案
+            for (var i = 0; i < 8; i++) {
+                var isCorrect = i === 0;
+                var wordObj = isCorrect ? correctWord : getRandomWrongWord(words);
+                
+                var target = {
+                    x: Math.random() * (canvas.width - 100) + 50,
+                    y: -50 - i * 60,
+                    word: wordObj.word,
+                    wordObj: wordObj, // 保存完整的单词对象
+                    isCorrect: isCorrect,
+                    speed: (Math.random() * 2 + 1) * speedFactor,
+                    color: isCorrect ? '#FF5722' : '#4CAF50',
+                    size: wordFontSize
+                };
+                
+                targets.push(target);
+            }
+            
+            showHint("新单词: " + correctWord.word, 2000);
+        }
+        
+        // 显示单词卡
+        function showWordCard(wordObj) {
+            // 更新单词卡内容
+            cardWordText.textContent = wordObj.word;
+            phoneticText.textContent = wordObj.phonetic;
+            meaningText.textContent = wordObj.meaning;
+            exampleText.textContent = wordObj.example;
+            
+            // 显示遮罩层和单词卡
+            overlay.style.display = 'block';
+            wordCard.style.display = 'block';
+            
+            // 暂停游戏
+            if (gameAnimationId) {
+                cancelAnimationFrame(gameAnimationId);
+                gameAnimationId = null;
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+        
+        // 关闭单词卡
+        function closeWordCardFunc() {
+            // 隐藏单词卡和遮罩层
+            wordCard.style.display = 'none';
+            overlay.style.display = 'none';
+            
+            // 恢复游戏
+            if (!allWordsCompleted) {
+                gameAnimationId = requestAnimationFrame(updateGame);
+                timerInterval = setInterval(function() {
+                    timer--;
+                    timerElement.textContent = "时间: " + formatTime(timer);
+                    
+                    if (timer <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+            }
+        }
+        
+        // 朗读单词
+        function speakWord() {
+            var word = cardWordText.textContent;
+            if ('speechSynthesis' in window) {
+                var utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8; // 稍微慢一点，方便孩子听清楚
+                
+                // 兼容性处理
+                try {
+                    speechSynthesis.speak(utterance);
+                } catch(e) {
+                    showHint("语音朗读功能暂时不可用");
+                }
+            } else {
+                showHint("您的浏览器不支持语音朗读功能");
+            }
+        }
+        
+        // 更新准星和枪图片位置
+        function updateCrosshairPosition(event) {
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+            
+            // 更新准星位置
+            crosshair.style.left = x + "px";
+            crosshair.style.top = y + "px";
+            
+            // 更新枪图片位置，在准星下方
+            gunImage.style.left = x + "px";
+            gunImage.style.top = (y + 50) + "px"; // 50px的偏移量，让枪在准星下方
+        }
+        
+        // 处理点击事件
+        function handleCanvasClick(event) {
+            if (targets.length === 0 || allWordsCompleted) return;
+            
+            var rect = canvas.getBoundingClientRect();
+            var clickX = event.clientX - rect.left;
+            var clickY = event.clientY - rect.top;
+            
+            // 检查是否点击了目标
+            for (var i = targets.length - 1; i >= 0; i--) {
+                var target = targets[i];
+                
+                // 使用canvas测量文本宽度
+                ctx.font = "bold " + target.size + "px Arial";
+                var textWidth = ctx.measureText(target.word).width;
+                var textHeight = target.size;
+                
+                if (clickX >= target.x - textWidth/2 && 
+                    clickX <= target.x + textWidth/2 && 
+                    clickY >= target.y - textHeight/2 && 
+                    clickY <= target.y + textHeight/2) {
+                    
+                    if (target.isCorrect) {
+                        // 击中正确单词
+                        score += 100;
+                        scoreElement.textContent = "分数: " + score;
+                        
+                        // 创建粒子效果
+                        createParticles(target.x, target.y, target.color);
+                        
+                        // 移除被击中的目标
+                        targets.splice(i, 1);
+                        
+                        // 显示单词卡
+                        showWordCard(target.wordObj);
+                        
+                        showHint("正确！+100分", 1000);
+                    } else {
+                        // 击中错误单词
+                        score = Math.max(0, score - 50);
+                        scoreElement.textContent = "分数: " + score;
+                        
+                        // 记录错误单词
+                        if (!wrongWords[currentUnit]) {
+                            wrongWords[currentUnit] = [];
+                        }
+                        if (wrongWords[currentUnit].indexOf(target.word) === -1) {
+                            wrongWords[currentUnit].push(target.word);
+                        }
+                        
+                        showHint("错误！应该是: " + correctWord.word, 1500);
+                    }
+                    
+                    break;
+                }
+            }
+        }
+        
+        // 创建粒子效果
+        function createParticles(x, y, color) {
+            for (var i = 0; i < 20; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    life: 1.0,
+                    color: color
+                });
+            }
+        }
+        
+        // 更新游戏状态
+        function updateGame() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 如果没有目标且未完成所有单词，生成新目标
+            if (targets.length === 0 && !allWordsCompleted) {
+                generateTargets();
+            }
+            
+            // 如果所有单词已完成，停止游戏
+            if (allWordsCompleted) {
+                return;
+            }
+            
+            // 更新和绘制目标
+            for (var i = targets.length - 1; i >= 0; i--) {
+                var target = targets[i];
+                
+                // 更新位置
+                target.y += target.speed;
+                
+                // 如果目标移出屏幕，移除它
+                if (target.y > canvas.height + 50) {
+                    targets.splice(i, 1);
+                    
+                    // 如果移出屏幕的是正确答案，需要惩罚
+                    if (target.isCorrect) {
+                        score = Math.max(0, score - 20);
+                        scoreElement.textContent = "分数: " + score;
+                        showHint("单词逃走了！-20分", 1000);
+                        
+                        // 生成新的目标
+                        setTimeout(function() {
+                            generateTargets();
+                        }, 1000);
+                    }
+                    continue;
+                }
+                
+                // 绘制目标
+                ctx.font = "bold " + target.size + "px Arial";
+                ctx.fillStyle = target.isCorrect ? target.color : '#4CAF50';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(target.word, target.x, target.y);
+                
+                // 绘制边框
+                ctx.strokeStyle = target.isCorrect ? '#FF0000' : '#2E7D32';
+                ctx.lineWidth = 2;
+                ctx.strokeText(target.word, target.x, target.y);
+            }
+            
+            // 更新和绘制粒子
+            for (var i = particles.length - 1; i >= 0; i--) {
+                var particle = particles[i];
+                
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= 0.05;
+                
+                if (particle.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                var r = parseInt(particle.color.slice(1, 3), 16);
+                var g = parseInt(particle.color.slice(3, 5), 16);
+                var b = parseInt(particle.color.slice(5, 7), 16);
+                
+                ctx.fillStyle = "rgba(" + r + ", " + g + ", " + b + ", " + particle.life + ")";
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 继续动画循环
+            if (gameAnimationId) {
+                gameAnimationId = requestAnimationFrame(updateGame);
+            }
+        }
+        
+        // 开始游戏
+        function startGame(unit) {
+            currentUnit = unit;
+            score = 0;
+            timer = 1800;
+            
+            // 重置当前单元的进度
+            usedWords[currentUnit] = [];
+            currentWordIndex = 0;
+            allWordsCompleted = false;
+            
+            // 更新显示
+            menuElement.style.display = 'none';
+            scoreElement.textContent = '分数: 0';
+            timerElement.textContent = "时间: " + formatTime(timer);
+            currentWordDisplay.style.display = 'block';
+            
+            // 显示准星和枪图片
+            crosshairContainer.style.display = 'block';
+            
+            // 设置鼠标指针为十字准星
+            canvas.style.cursor = 'crosshair';
+            
+            // 初始化目标
+            generateTargets();
+            
+            // 添加事件监听
+            canvas.addEventListener('mousemove', updateCrosshairPosition);
+            canvas.addEventListener('click', handleCanvasClick);
+            
+            // 清理之前的定时器/动画
+            if (gameAnimationId) {
+                cancelAnimationFrame(gameAnimationId);
+                gameAnimationId = null;
+            }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            // 开始游戏循环
+            gameAnimationId = requestAnimationFrame(updateGame);
+            
+            // 开始计时器
+            timerInterval = setInterval(function() {
+                timer--;
+                timerElement.textContent = "时间: " + formatTime(timer);
+                
+                if (timer <= 0) {
+                    endGame();
+                }
+            }, 1000);
+            
+            showHint("开始 " + unitNames[unit] + " 关卡！", 1500);
+        }
+        
+        // 结束游戏
+        function endGame() {
+            if (gameAnimationId) {
+                cancelAnimationFrame(gameAnimationId);
+                gameAnimationId = null;
+            }
+            
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            // 隐藏准星、枪图片和当前单词显示
+            crosshairContainer.style.display = 'none';
+            currentWordDisplay.style.display = 'none';
+            
+            // 恢复默认鼠标指针
+            canvas.style.cursor = 'default';
+            
+            // 移除事件监听
+            canvas.removeEventListener('mousemove', updateCrosshairPosition);
+            canvas.removeEventListener('click', handleCanvasClick);
+            
+            // 保存数据
+            try {
+                var savedStats = localStorage.getItem('stats');
+                if (savedStats) {
+                    stats = JSON.parse(savedStats);
+                }
+                stats.totalTime += 1800 - timer;
+                
+                // 记录正确率
+                if (!stats.correctRates[currentUnit]) {
+                    stats.correctRates[currentUnit] = [];
+                }
+                
+                var totalWords = wordUnits[currentUnit].length;
+                var learnedWords = usedWords[currentUnit] ? usedWords[currentUnit].length : 0;
+                var accuracyRate = totalWords > 0 ? (learnedWords / totalWords) * 100 : 0;
+                stats.correctRates[currentUnit].push({
+                    date: new Date().toISOString(),
+                    accuracy: accuracyRate.toFixed(2)
+                });
+                
+                localStorage.setItem('stats', JSON.stringify(stats));
+                localStorage.setItem('wrongWords', JSON.stringify(wrongWords));
+            } catch (e) {
+                console.log('无法保存数据到本地存储');
+            }
+            
+            // 显示菜单
+            menuElement.style.display = 'flex';
+            
+            alert("游戏结束！\n最终分数: " + score + "\n已学习单词: " + (usedWords[currentUnit] ? usedWords[currentUnit].length : 0) + "/" + wordUnits[currentUnit].length + "\n休息5分钟再玩哦。");
+        }
+        
+        // 显示设置面板
+        function showSettings() {
+            settingsPanel.style.display = 'block';
+            
+            // 加载当前设置
+            difficultySelect.value = currentDifficulty;
+            fontSizeSlider.value = wordFontSize;
+            fontSizeValue.textContent = wordFontSize + "px";
+        }
+        
+        // 保存设置
+        function saveSettings() {
+            currentDifficulty = difficultySelect.value;
+            wordFontSize = parseInt(fontSizeSlider.value);
+            
+            // 更新速度因子
+            speedFactor = difficultySettings[currentDifficulty].factor;
+            
+            // 保存到本地存储
+            try {
+                var settings = {
+                    wordFontSize: wordFontSize,
+                    currentDifficulty: currentDifficulty,
+                    speedFactor: speedFactor
+                };
+                localStorage.setItem('gameSettings', JSON.stringify(settings));
+            } catch (e) {
+                console.log('无法保存设置');
+            }
+            
+            // 更新显示
+            fontSizeValue.textContent = wordFontSize + "px";
+            
+            // 关闭设置面板
+            settingsPanel.style.display = 'none';
+            
+            showHint("设置已保存！", 1000);
+        }
+        
+        // 加载设置
+        function loadSettings() {
+            try {
+                var savedSettings = localStorage.getItem('gameSettings');
+                if (savedSettings) {
+                    var settings = JSON.parse(savedSettings);
+                    wordFontSize = settings.wordFontSize || 30;
+                    currentDifficulty = settings.currentDifficulty || 'hard';
+                    speedFactor = settings.speedFactor || difficultySettings[currentDifficulty].factor;
+                }
+            } catch (e) {
+                console.log('无法加载设置');
+            }
+        }
+        
+        // 初始化菜单按钮
+        function initMenuButtons() {
+            for (var unit in unitButtons) {
+                if (unitButtons.hasOwnProperty(unit) && unitButtons[unit]) {
+                    (function(unitNum) {
+                        unitButtons[unitNum].addEventListener('click', function() {
+                            startGame(parseInt(unitNum));
+                        });
+                    })(unit);
+                }
+            }
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            // 设置Canvas尺寸
+            initCanvasSize();
+            
+            // 加载设置
+            loadSettings();
+            
+            // 加载数据
+            try {
+                var savedWrongWords = localStorage.getItem('wrongWords');
+                if (savedWrongWords) {
+                    wrongWords = JSON.parse(savedWrongWords);
+                }
+                
+                var savedStats = localStorage.getItem('stats');
+                if (savedStats) {
+                    stats = JSON.parse(savedStats);
+                }
+            } catch (e) {
+                console.log('无法加载游戏数据');
+            }
+            
+            // 初始化菜单按钮
+            initMenuButtons();
+            
+            // 设置按钮事件
+            settingsBtn.addEventListener('click', showSettings);
+            saveSettingsBtn.addEventListener('click', saveSettings);
+            cancelSettingsBtn.addEventListener('click', function() {
+                settingsPanel.style.display = 'none';
+            });
+            
+            // 单词卡按钮事件
+            speakButton.addEventListener('click', speakWord);
+            closeWordCard.addEventListener('click', closeWordCardFunc);
+            
+            // 点击遮罩层也可以关闭单词卡
+            overlay.addEventListener('click', closeWordCardFunc);
+            
+            // ESC键关闭单词卡
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && wordCard.style.display === 'block') {
+                    closeWordCardFunc();
+                }
+            });
+            
+            // 字体大小滑块事件
+            fontSizeSlider.addEventListener('input', function() {
+                fontSizeValue.textContent = fontSizeSlider.value + "px";
+            });
+            
+            // 点击设置面板外部关闭
+            settingsPanel.addEventListener('click', function(e) {
+                if (e.target === settingsPanel) {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+            
+            // 窗口大小变化时重新调整Canvas
+            window.addEventListener('resize', initCanvasSize);
+            
+            // 显示菜单
+            menuElement.style.display = 'flex';
+            
+            console.log('单词射击大冒险游戏已初始化');
+        }
+        
+        // 启动游戏
+        window.addEventListener('load', function() {
+            // 检查浏览器兼容性
+            var compatibilityIssues = checkBrowserCompatibility();
+            
+            // 如果没有兼容性问题，直接启动游戏
+            if (compatibilityIssues.length === 0) {
+                initGame();
+            } else {
+                // 显示兼容性警告
+                showBrowserWarning(compatibilityIssues);
+            }
+        });
+    </script>
+</body>
+</html>
